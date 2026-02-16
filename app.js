@@ -8,7 +8,41 @@ let savedJobIds = JSON.parse(localStorage.getItem('savedJobIds')) || [];
 let userPrefs = JSON.parse(localStorage.getItem('jobTrackerPreferences')) || null;
 let jobStatuses = JSON.parse(localStorage.getItem('jobTrackerStatus')) || {};
 let statusHistory = JSON.parse(localStorage.getItem('jobTrackerStatusHistory')) || [];
+let testChecklist = JSON.parse(localStorage.getItem('jobTrackerTestChecklist')) || {};
 let showOnlyMatches = false;
+
+const testItems = [
+    { id: 'prefs', label: 'Preferences persist after refresh', hint: 'Change settings, refresh, and confirm they remain.' },
+    { id: 'score', label: 'Match score calculates correctly', hint: 'Verify score changes based on keyword matches.' },
+    { id: 'toggle', label: ' "Show only matches" toggle works', hint: 'Toggle on/off and see low-score jobs hide/show.' },
+    { id: 'save', label: 'Save job persists after refresh', hint: 'Save a job, refresh, and check the "Saved" tab.' },
+    { id: 'apply', label: 'Apply opens in new tab', hint: 'Click apply and confirm it doesnt close the app.' },
+    { id: 'status-persist', label: 'Status update persists after refresh', hint: 'Change status to Applied, refresh, and verify.' },
+    { id: 'status-filter', label: 'Status filter works correctly', hint: 'Filter by "Applied" and confirm results.' },
+    { id: 'digest-logic', label: 'Digest generates top 10 by score', hint: 'Generate digest and check if they are the best matches.' },
+    { id: 'digest-persist', label: 'Digest persists for the day', hint: 'Generate, refresh, and confirm it doesnt disappear.' },
+    { id: 'errors', label: 'No console errors on main pages', hint: 'Check Developer Tools Console for any red text.' }
+];
+
+function toggleTestItem(id) {
+    testChecklist[id] = !testChecklist[id];
+    localStorage.setItem('jobTrackerTestChecklist', JSON.stringify(testChecklist));
+    handleRouteChange(); // Refresh view
+}
+
+function resetTests() {
+    testChecklist = {};
+    localStorage.removeItem('jobTrackerTestChecklist');
+    handleRouteChange();
+}
+
+function getPassCount() {
+    return Object.values(testChecklist).filter(Boolean).length;
+}
+
+function isShipUnlocked() {
+    return getPassCount() === 10;
+}
 
 function getTodayKey() {
     const d = new Date();
@@ -544,12 +578,79 @@ const routes = {
             `;
         }
     },
-    '/proof': { title: 'Proof of Build', subtext: 'Final validation of scoring engine.', progress: 'Finalization', step: '6/6', status: 'Shipped', render: () => `<div class="kn-workspace"><div class="kn-card"><h3>Matching Engine V1.0</h3><p class="kn-mt-16">Intelligence layer is fully integrated. All scoring rules are verified against specification.</p><div class="kn-mt-24" style="height: 120px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-weight: 700;">DETERMINISTIC_SCORING_ACTIVE</div></div></div>` }
+    '/test': {
+        title: 'Built-In Test Checklist',
+        subtext: 'Verify all core features before final software shipment.',
+        progress: 'Verification', step: '7/8', status: 'Testing',
+        render: () => {
+            const passed = getPassCount();
+            return `
+            <div class="kn-workspace" style="grid-column: 1 / -1">
+                <div class="kn-test-summary">
+                    <div class="kn-test-score">Tests Passed: ${passed} / 10</div>
+                    ${passed < 10 ? `<div class="kn-ship-warning">⚠️ Resolve all issues before shipping.</div>` : `<div class="kn-ship-warning" style="color: #2E7D32;">✅ All systems verified. Ship-Lock released.</div>`}
+                    <div class="kn-mt-24">
+                        <button class="kn-button kn-button--secondary" onclick="window.resetTests()">Reset Test Status</button>
+                    </div>
+                </div>
+                <div class="kn-checklist-group">
+                    ${testItems.map(item => `
+                        <div class="kn-checklist-item" onclick="window.toggleTestItem('${item.id}')">
+                            <input type="checkbox" ${testChecklist[item.id] ? 'checked' : ''} onchange="return false">
+                            <div class="kn-checklist-label">
+                                <strong>${item.label}</strong>
+                                <div class="kn-test-tooltip">${item.hint}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="kn-mt-40" style="text-align: center;">
+                    <a href="#/ship" class="kn-button ${isShipUnlocked() ? 'kn-button--primary' : 'kn-button--secondary'}" ${!isShipUnlocked() ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>Proceed to Ship (08)</a>
+                </div>
+            </div>`;
+        }
+    },
+    '/jt/07-test': { alias: '/test' },
+    '/ship': {
+        title: 'Final Software Shipment',
+        subtext: 'Official release of the Job Notification Tracker.',
+        progress: 'Finalization', step: '8/8', status: 'Shipped',
+        render: () => {
+            return `
+            <div class="kn-workspace">
+                <div class="kn-card">
+                    <h3>Software Released Successfully</h3>
+                    <p class="kn-mt-16">All 10 quality gates have been cleared. Intelligence matching, daily curation, and lifecycle tracking are fully operational.</p>
+                    <div class="kn-mt-40" style="padding: 24px; border: 2px dashed #ddd; text-align: center; font-weight: 700; color: #8B0000; letter-spacing: 0.1em;">
+                        SHIPMENT_CODE: DETERMINISTIC_SUCCESS_2026
+                    </div>
+                    <div class="kn-mt-24">
+                        <a href="#/dashboard" class="kn-button kn-button--primary">Back to Dashboard</a>
+                    </div>
+                </div>
+            </div>`;
+        }
+    },
+    '/jt/08-ship': { alias: '/ship' },
+    '/proof': {
+        title: 'Proof of Build', subtext: 'Final validation of scoring engine.', progress: 'Finalization', step: '6/6', status: 'Shipped',
+        render: () => `<div class="kn-workspace"><div class="kn-card"><h3>Matching Engine V1.0</h3><p class="kn-mt-16">Intelligence layer is fully integrated. All scoring rules are verified against specification.</p><div class="kn-mt-24" style="height: 120px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-weight: 700;">DETERMINISTIC_SCORING_ACTIVE</div></div></div>`
+    }
 };
 
 function handleRouteChange() {
     const hash = window.location.hash.slice(1) || '/';
-    const route = routes[hash] || routes['/'];
+
+    // SHIP LOCK REDIRECT
+    if ((hash === '/ship' || hash === '/proof' || hash === '/jt/08-ship') && !isShipUnlocked()) {
+        window.location.hash = '#/test';
+        return;
+    }
+
+    const route = routes[hash] || (routes[hash.startsWith('/jt/') ? routes[hash].alias : null]) || routes['/'];
+    // Handle aliases
+    const activeRoute = (routes[hash] && routes[hash].alias) ? routes[routes[hash].alias] : (routes[hash] || routes['/']);
+
     const containerEl = document.querySelector('.kn-main');
     const headerEl = document.querySelector('.kn-header');
 
@@ -561,22 +662,28 @@ function handleRouteChange() {
         if (containerEl) containerEl.style.display = 'grid';
         const titleEl = document.querySelector('.kn-title');
         const subtextEl = document.querySelector('.kn-subtext');
-        if (titleEl) titleEl.textContent = route.title || '';
-        if (subtextEl) subtextEl.textContent = route.subtext || '';
+        if (titleEl) titleEl.textContent = activeRoute.title || '';
+        if (subtextEl) subtextEl.textContent = activeRoute.subtext || '';
     }
 
-    if (containerEl) containerEl.innerHTML = route.render();
+    if (containerEl) containerEl.innerHTML = activeRoute.render ? activeRoute.render() : '';
 
     const progressEl = document.querySelector('.kn-progress');
     const statusEl = document.querySelector('.kn-badge');
-    if (progressEl) progressEl.innerHTML = `<span>${route.progress}</span><span>/</span><span>${route.step}</span>`;
+    if (progressEl) progressEl.innerHTML = `<span>${activeRoute.progress}</span><span>/</span><span>${activeRoute.step}</span>`;
     if (statusEl) {
-        statusEl.textContent = route.status;
-        statusEl.className = 'kn-badge' + (route.status === 'Shipped' ? ' kn-badge--shipped' : '');
+        statusEl.textContent = activeRoute.status;
+        statusEl.className = 'kn-badge' + (activeRoute.status === 'Shipped' ? ' kn-badge--shipped' : '');
     }
 
     document.querySelectorAll('.kn-nav-link').forEach(link => {
-        link.classList.toggle('kn-nav-link--active', link.getAttribute('href').slice(1) === hash);
+        const linkHref = link.getAttribute('href').slice(1);
+        link.classList.toggle('kn-nav-link--active', linkHref === hash);
+
+        // Ship lock visualization
+        if (linkHref === '/ship' || linkHref === '/proof' || linkHref === '/jt/08-ship') {
+            link.classList.toggle('kn-nav-link--locked', !isShipUnlocked());
+        }
     });
 
     if (document.querySelector('.kn-nav')) document.querySelector('.kn-nav').classList.remove('kn-nav--open');
@@ -594,6 +701,8 @@ window.generateDigest = generateDigest;
 window.copyDigestToClipboard = copyDigestToClipboard;
 window.createEmailDraft = createEmailDraft;
 window.updateJobStatus = updateJobStatus;
+window.toggleTestItem = toggleTestItem;
+window.resetTests = resetTests;
 window.toggleMobileMenu = () => document.querySelector('.kn-nav').classList.toggle('kn-nav--open');
 
 window.addEventListener('hashchange', handleRouteChange);
