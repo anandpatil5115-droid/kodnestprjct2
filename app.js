@@ -9,6 +9,7 @@ let userPrefs = JSON.parse(localStorage.getItem('jobTrackerPreferences')) || nul
 let jobStatuses = JSON.parse(localStorage.getItem('jobTrackerStatus')) || {};
 let statusHistory = JSON.parse(localStorage.getItem('jobTrackerStatusHistory')) || [];
 let testChecklist = JSON.parse(localStorage.getItem('jobTrackerTestChecklist')) || {};
+let projectLinks = JSON.parse(localStorage.getItem('jobTrackerProjectLinks')) || { lovable: '', github: '', deploy: '' };
 let showOnlyMatches = false;
 
 const testItems = [
@@ -42,6 +43,42 @@ function getPassCount() {
 
 function isShipUnlocked() {
     return getPassCount() === 10;
+}
+
+function validateUrl(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function areLinksValid() {
+    return validateUrl(projectLinks.lovable) &&
+        validateUrl(projectLinks.github) &&
+        validateUrl(projectLinks.deploy);
+}
+
+function isProjectFullyShipped() {
+    return isShipUnlocked() && areLinksValid();
+}
+
+function getProjectStatus() {
+    if (getPassCount() === 0 && !projectLinks.lovable) return 'Not Started';
+    if (isProjectFullyShipped()) return 'Shipped';
+    return 'In Progress';
+}
+
+function updateLink(key, value) {
+    projectLinks[key] = value;
+    localStorage.setItem('jobTrackerProjectLinks', JSON.stringify(projectLinks));
+    handleRouteChange();
+}
+
+function copyFinalSubmission() {
+    const text = `Job Notification Tracker — Final Submission\n\nLovable Project:\n${projectLinks.lovable}\n\nGitHub Repository:\n${projectLinks.github}\n\nLive Deployment:\n${projectLinks.deploy}\n\nCore Features:\n- Intelligent match scoring\n- Daily digest simulation\n- Status tracking\n- Test checklist enforced`;
+    navigator.clipboard.writeText(text).then(() => showToast("Submission copied to clipboard"));
 }
 
 function getTodayKey() {
@@ -605,44 +642,103 @@ const routes = {
                     `).join('')}
                 </div>
                 <div class="kn-mt-40" style="text-align: center;">
-                    <a href="#/ship" class="kn-button ${isShipUnlocked() ? 'kn-button--primary' : 'kn-button--secondary'}" ${!isShipUnlocked() ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>Proceed to Ship (08)</a>
+                    <a href="#/proof" class="kn-button ${isShipUnlocked() ? 'kn-button--primary' : 'kn-button--secondary'}" ${!isShipUnlocked() ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>Proceed to Proof (07)</a>
                 </div>
             </div>`;
         }
     },
     '/jt/07-test': { alias: '/test' },
-    '/ship': {
-        title: 'Final Software Shipment',
-        subtext: 'Official release of the Job Notification Tracker.',
-        progress: 'Finalization', step: '8/8', status: 'Shipped',
+    '/proof': {
+        title: 'Proof of Build',
+        subtext: 'Verify milestones and provide artifact collection.',
+        progress: 'Finalization', step: '8/8', status: getProjectStatus(),
         render: () => {
+            if (!isShipUnlocked()) {
+                window.location.hash = '#/test';
+                return '';
+            }
+            const milestones = [
+                { id: 1, label: 'Hero Layout & Navigation', checked: true },
+                { id: 2, label: 'Indian Tech Job Dataset (60 Jobs)', checked: true },
+                { id: 3, label: 'Deterministic Scoring Engine', checked: true },
+                { id: 4, label: 'Filter Bar (AND Logic)', checked: true },
+                { id: 5, label: 'Job Details & Save Logic', checked: true },
+                { id: 6, label: 'Daily 9AM Digest Engine', checked: true },
+                { id: 7, label: 'Application Status Tracking', checked: true },
+                { id: 8, label: 'Ship-Lock Built-In Testing', checked: true }
+            ];
             return `
-            <div class="kn-workspace">
+            <div class="kn-workspace" style="grid-column: 1 / -1">
                 <div class="kn-card">
-                    <h3>Software Released Successfully</h3>
-                    <p class="kn-mt-16">All 10 quality gates have been cleared. Intelligence matching, daily curation, and lifecycle tracking are fully operational.</p>
-                    <div class="kn-mt-40" style="padding: 24px; border: 2px dashed #ddd; text-align: center; font-weight: 700; color: #8B0000; letter-spacing: 0.1em;">
-                        SHIPMENT_CODE: DETERMINISTIC_SUCCESS_2026
+                    <h3>Project 1 — Job Notification Tracker</h3>
+                    <div class="kn-summary-list kn-mt-24">
+                        ${milestones.map(m => `
+                            <div class="kn-summary-item">
+                                <span>${m.id}. ${m.label}</span>
+                                <span class="kn-summary-status ${m.checked ? 'kn-summary--completed' : 'kn-summary--pending'}">${m.checked ? 'Completed' : 'Pending'}</span>
+                            </div>
+                        `).join('')}
                     </div>
-                    <div class="kn-mt-24">
+                    
+                    <div class="kn-artifact-form">
+                        <h3>Artifact Collection</h3>
+                        <div class="kn-form-group">
+                            <label class="kn-label">Lovable Project Link</label>
+                            <input type="url" class="kn-input" value="${projectLinks.lovable}" onchange="window.updateLink('lovable', this.value)" placeholder="https://lovable.dev/projects/...">
+                        </div>
+                        <div class="kn-form-group">
+                            <label class="kn-label">GitHub Repository Link</label>
+                            <input type="url" class="kn-input" value="${projectLinks.github}" onchange="window.updateLink('github', this.value)" placeholder="https://github.com/...">
+                        </div>
+                        <div class="kn-form-group">
+                            <label class="kn-label">Live Deployment URL</label>
+                            <input type="url" class="kn-input" value="${projectLinks.deploy}" onchange="window.updateLink('deploy', this.value)" placeholder="https://...vercel.app">
+                        </div>
+                        
+                        <div class="kn-mt-40">
+                            <button class="kn-button ${areLinksValid() ? 'kn-button--primary' : 'kn-button--secondary'}" onclick="window.copyFinalSubmission()" ${!areLinksValid() ? 'disabled' : ''}>Copy Final Submission</button>
+                            ${isProjectFullyShipped() ? `<a href="#/ship" class="kn-button kn-button--primary" style="margin-left: 12px;">Final Shipment</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+    },
+    '/jt/proof': { alias: '/proof' },
+    '/ship': {
+        title: 'Project Shipped',
+        subtext: 'Official completion of the Job Notification Tracker.',
+        progress: 'Complete', step: '8/8', status: 'Shipped',
+        render: () => {
+            if (!isProjectFullyShipped()) {
+                window.location.hash = '#/proof';
+                return '';
+            }
+            return `
+            <div class="kn-workspace" style="grid-column: 1 / -1">
+                <div class="kn-shipped-message">
+                    <h2 style="font-size: 32px; font-family: var(--font-serif);">Project 1 Shipped Successfully.</h2>
+                    <p style="margin-top: 16px; color: #666;">All milestones cleared. Artifacts verified. Intelligence matching active.</p>
+                    <div class="kn-shipped-code">SHIPMENT_ID: PROJECT_01_SUCCESS_2026</div>
+                    <div class="kn-mt-40">
                         <a href="#/dashboard" class="kn-button kn-button--primary">Back to Dashboard</a>
                     </div>
                 </div>
             </div>`;
         }
     },
-    '/jt/08-ship': { alias: '/ship' },
-    '/proof': {
-        title: 'Proof of Build', subtext: 'Final validation of scoring engine.', progress: 'Finalization', step: '6/6', status: 'Shipped',
-        render: () => `<div class="kn-workspace"><div class="kn-card"><h3>Matching Engine V1.0</h3><p class="kn-mt-16">Intelligence layer is fully integrated. All scoring rules are verified against specification.</p><div class="kn-mt-24" style="height: 120px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-weight: 700;">DETERMINISTIC_SCORING_ACTIVE</div></div></div>`
-    }
+    '/jt/08-ship': { alias: '/ship' }
 };
 
 function handleRouteChange() {
     const hash = window.location.hash.slice(1) || '/';
 
     // SHIP LOCK REDIRECT
-    if ((hash === '/ship' || hash === '/proof' || hash === '/jt/08-ship') && !isShipUnlocked()) {
+    if ((hash === '/ship' || hash === '/jt/08-ship') && !isProjectFullyShipped()) {
+        window.location.hash = '#/proof';
+        return;
+    }
+    if ((hash === '/proof' || hash === '/jt/proof') && !isShipUnlocked()) {
         window.location.hash = '#/test';
         return;
     }
@@ -681,13 +777,22 @@ function handleRouteChange() {
         statusEl.className = 'kn-badge' + (activeRoute.status === 'Shipped' ? ' kn-badge--shipped' : '');
     }
 
+    // Update global project status badge
+    const globalStatusBadge = document.querySelector('.kn-badge--project-status');
+    if (globalStatusBadge) {
+        const ps = getProjectStatus();
+        globalStatusBadge.textContent = ps;
+        globalStatusBadge.className = 'kn-badge kn-badge--project-status' + (ps === 'Shipped' ? ' kn-badge--shipped' : '');
+    }
+
     document.querySelectorAll('.kn-nav-link').forEach(link => {
         const linkHref = link.getAttribute('href').slice(1);
         link.classList.toggle('kn-nav-link--active', linkHref === hash || (routes[linkHref] && routes[linkHref].alias === hash));
 
         // Ship lock visualization
-        if (linkHref === '/ship' || linkHref === '/proof' || linkHref === '/jt/08-ship') {
-            link.classList.toggle('kn-nav-link--locked', !isShipUnlocked());
+        if (linkHref === '/ship' || linkHref === '/proof' || linkHref === '/jt/08-ship' || linkHref === '/jt/proof') {
+            const locked = (linkHref.includes('ship') && !isProjectFullyShipped()) || (linkHref.includes('proof') && !isShipUnlocked());
+            link.classList.toggle('kn-nav-link--locked', locked);
         }
     });
 
@@ -708,6 +813,8 @@ window.createEmailDraft = createEmailDraft;
 window.updateJobStatus = updateJobStatus;
 window.toggleTestItem = toggleTestItem;
 window.resetTests = resetTests;
+window.updateLink = updateLink;
+window.copyFinalSubmission = copyFinalSubmission;
 window.toggleMobileMenu = () => document.querySelector('.kn-nav').classList.toggle('kn-nav--open');
 
 window.addEventListener('hashchange', handleRouteChange);
