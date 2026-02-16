@@ -522,6 +522,79 @@ h4 {
     font-weight: 500;
 }
 
+/* MATCH SCORE BADGES */
+.kn-score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kn-score--high {
+    background: #E8FFEF;
+    color: #2E7D32;
+}
+
+.kn-score--mid {
+    background: #FFF9E8;
+    color: #B8860B;
+}
+
+.kn-score--low {
+    background: #F5F5F5;
+    color: #666;
+}
+
+.kn-score--critical {
+    background: #FFE8E8;
+    color: var(--color-accent);
+}
+
+/* BANNERS */
+.kn-banner {
+    background: #111;
+    color: #fff;
+    padding: var(--space-16) var(--space-24);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-24);
+    font-size: 14px;
+}
+
+/* RANGE SLIDER */
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+/* MULTI-SELECT DISPLAY */
+.kn-checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+    margin-top: var(--space-8);
+}
+
+.kn-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.kn-checkbox-item input {
+    accent-color: var(--color-accent);
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
     .kn-nav {
