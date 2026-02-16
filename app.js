@@ -647,9 +647,14 @@ function handleRouteChange() {
         return;
     }
 
-    const route = routes[hash] || (routes[hash.startsWith('/jt/') ? routes[hash].alias : null]) || routes['/'];
-    // Handle aliases
-    const activeRoute = (routes[hash] && routes[hash].alias) ? routes[routes[hash].alias] : (routes[hash] || routes['/']);
+    // Safe route resolution including aliases
+    let activeRoute = routes[hash];
+    if (activeRoute && activeRoute.alias) {
+        activeRoute = routes[activeRoute.alias];
+    }
+    if (!activeRoute) {
+        activeRoute = routes['/'];
+    }
 
     const containerEl = document.querySelector('.kn-main');
     const headerEl = document.querySelector('.kn-header');
@@ -678,7 +683,7 @@ function handleRouteChange() {
 
     document.querySelectorAll('.kn-nav-link').forEach(link => {
         const linkHref = link.getAttribute('href').slice(1);
-        link.classList.toggle('kn-nav-link--active', linkHref === hash);
+        link.classList.toggle('kn-nav-link--active', linkHref === hash || (routes[linkHref] && routes[linkHref].alias === hash));
 
         // Ship lock visualization
         if (linkHref === '/ship' || linkHref === '/proof' || linkHref === '/jt/08-ship') {
